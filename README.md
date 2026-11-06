@@ -32,7 +32,7 @@
         <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
             <div>
                 <h1 class="text-xl font-bold flex items-center gap-2">
-                    📦 Recepção Ágil <span class="text-xs bg-accentGreen/20 text-accentGreen px-2 py-0.5 rounded-full font-mono">v3.3</span>
+                    📦 Recepção Ágil <span class="text-xs bg-accentGreen/20 text-accentGreen px-2 py-0.5 rounded-full font-mono">v3.4 (SAP Match)</span>
                 </h1>
                 <p class="text-xs text-slate-400">Otimização de Recebimento & Conferência Física</p>
             </div>
@@ -53,7 +53,7 @@
         <!-- PAINEL DE INDICADORES (DASHBOARD) -->
         <section class="grid grid-cols-3 gap-3">
             <div class="bg-cardBg border border-slate-800 p-3 rounded-xl text-center shadow">
-                <p class="text-xs text-slate-400">Notas Bipadas</p>
+                <p class="text-xs text-slate-400">Pedidos Bipados</p>
                 <h2 class="text-xl font-bold text-accentBlue mt-1" id="statNotas">0</h2>
             </div>
             <div class="bg-cardBg border border-slate-800 p-3 rounded-xl text-center shadow">
@@ -80,7 +80,7 @@
                 <div class="flex flex-col gap-1">
                     <label class="text-xs text-slate-400 font-medium">Nº Pedido SAP ou Nota Fiscal:</label>
                     <div class="flex gap-2">
-                        <input type="text" id="inputPedido" placeholder="Ex: 4500935826" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accentGreen flex-1 font-mono">
+                        <input type="text" id="inputPedido" placeholder="Ex: 4500940713" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accentGreen flex-1 font-mono">
                         <button onclick="processarLeitura()" class="bg-accentGreen hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition shadow">
                             Validar
                         </button>
@@ -121,12 +121,12 @@
                 </div>
             </div>
 
-            <!-- Cruzamento NF x Pedido (De / Para da Casa) -->
+            <!-- Cruzamento NF x Pedido (De / Para da Casa baseado no SAP) -->
             <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow flex flex-col gap-3">
                 <h3 class="font-semibold text-sm">🔄 Cruzamento de Descrição (NF x SAP)</h3>
                 <div id="painelCruzamento" class="text-xs text-slate-400 bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col justify-center items-center text-center h-full min-h-[140px]">
-                    <p>Aguardando leitura de Nota Fiscal ou Pedido...</p>
-                    <span class="text-[10px] text-slate-500 mt-1">O sistema cruzará automaticamente a descrição do fornecedor com a descrição padrão de casa.</span>
+                    <p>Aguardando leitura de Nota Fiscal ou Pedido (Ex: 4500940713)...</p>
+                    <span class="text-[10px] text-slate-500 mt-1">O sistema cruzará automaticamente a descrição do fornecedor com a descrição padrão do SAP.</span>
                 </div>
             </div>
 
@@ -199,7 +199,7 @@
             const numPalete = paletes.length + 1;
             const novoObj = {
                 id: numPalete,
-                fornecedor: "Fornecedor Padrão",
+                fornecedor: "MAQNELSON AGRICOLA",
                 status: "Em Montagem",
                 itens: []
             };
@@ -241,13 +241,15 @@
                 novoPalete();
             }
 
-            // Adiciona o item ao último palete ativo
+            // Adiciona o item ao último palete ativo simulando o padrão do SAP enviado
             const paleteAtivo = paletes[paletes.length - 1];
             paleteAtivo.itens.push({
                 pedido: input,
-                nfDesc: "CJ VALV SOL 12V (NF Fornecedor)",
-                casaDesc: "CONJUNTO VALVULA SOLENOIDE 12V - Mat: 8001425",
-                qtd: 10
+                fornecedor: "300364 - MAQNELSON AGRICOLA",
+                material: "9232950",
+                nfDesc: "DISCO JDEERE N305598",
+                casaDesc: "DISCO JDEERE N305598",
+                qtd: 21
             });
 
             exibirCruzamento(input);
@@ -260,15 +262,12 @@
             painel.innerHTML = `
                 <div class="flex justify-between items-center border-b border-slate-800 pb-1">
                     <span class="font-bold text-accentGreen">Pedido: ${pedido}</span>
-                    <span class="text-[10px] bg-accentGreen/20 text-accentGreen px-1.5 py-0.5 rounded">Match Validado</span>
+                    <span class="text-[10px] bg-accentGreen/20 text-accentGreen px-1.5 py-0.5 rounded">Match SAP OK</span>
                 </div>
                 <div>
-                    <p class="text-slate-400">📄 Descrição NF (Fornecedor):</p>
-                    <p class="text-slate-200 font-medium">CJ VALV SOL 12V</p>
-                </div>
-                <div>
-                    <p class="text-slate-400">🏢 Descrição Interna (Casa - SAP):</p>
-                    <p class="text-emerald-400 font-medium">CONJUNTO VALVULA SOLENOIDE 12V (Cod: 8001425)</p>
+                    <p class="text-slate-400">🏢 Fornecedor: <span class="text-slate-200">300364 - MAQNELSON AGRICOLA</span></p>
+                    <p class="text-slate-400">📦 Material / Descrição: <span class="text-emerald-400 font-medium">9232950 - DISCO JDEERE N305598</span></p>
+                    <p class="text-slate-400">📊 Qtd Pedida: <span class="text-accentBlue font-bold">21 PEÇAS</span></p>
                 </div>
                 <div class="flex gap-2 mt-2">
                     <button onclick="registrarAvariado()" class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded text-[10px] hover:bg-amber-500/30">📷 Registrar Avaria / Foto</button>
@@ -297,8 +296,8 @@
             container.innerHTML = paletes.map(p => `
                 <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex justify-between items-center">
                     <div>
-                        <p class="font-bold text-sm">Palete 0${p.id}</p>
-                        <p class="text-[11px] text-slate-400">${p.itens.length} iten(s) vinculado(s)</p>
+                        <p class="font-bold text-sm">Palete 0${p.id} (${p.fornecedor})</p>
+                        <p class="text-[11px] text-slate-400">${p.itens.length} item(ns) - Mat: 9232950</p>
                     </div>
                     <span class="text-[10px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${p.status}</span>
                 </div>
@@ -307,9 +306,9 @@
             const relatorioTexto = `📋 *RELATÓRIO DE CONFERÊNCIA - ALMOXARIFADO*
 👤 Conferente: ${operadorAtual.nome} (Mat: ${operadorAtual.matricula})
 📦 Paletes Montados: ${paletes.length}
-📄 Total de Notas/Pedidos Bipados: ${notasBipadas}
+📄 Total de Pedidos Bipados: ${notasBipadas}
 ⚠️ Divergências/Avarias: ${divergencias}
-Status: Operação concluída dentro da faixa padrão (45005000-45009900).`;
+Status: Operação conferida e validada via app (Faixa 45005000-45009900).`;
 
             document.getElementById('textoRelatorio').value = relatorioTexto;
         }
@@ -322,7 +321,7 @@ Status: Operação concluída dentro da faixa padrão (45005000-45009900).`;
             alert("Relatório copiado para a área de transferência!");
         }
 
-        // FUNÇÃO DE ABRIR A CÂMERA REAL CORRIGIDA
+        // Câmera Real
         function abrirCameraReal() {
             const wrapper = document.getElementById('cameraWrapper');
             wrapper.style.display = 'flex';
@@ -339,13 +338,30 @@ Status: Operação concluída dentro da faixa padrão (45005000-45009900).`;
                     qrbox: { width: 250, height: 150 }
                 },
                 (decodedText) => {
-                    // Sucesso na leitura do código
                     tocarBip('sucesso');
                     document.getElementById('inputPedido').value = decodedText;
                     processarLeitura(decodedText);
                     fecharCamera();
                 },
-                (errorMessage) => {
-                    // Erros de varredura de quadros em tempo real são normais, ignorar
-                }
-            ).
+                (errorMessage) => {}
+            ).catch(err => {
+                console.error("Erro ao iniciar a câmera:", err);
+                alert("Não foi possível acessar a câmera. Verifique as permissões do navegador.");
+                fecharCamera();
+            });
+        }
+
+        function fecharCamera() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('cameraWrapper').style.display = 'none';
+                }).catch(err => {
+                    document.getElementById('cameraWrapper').style.display = 'none';
+                });
+            } else {
+                document.getElementById('cameraWrapper').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
