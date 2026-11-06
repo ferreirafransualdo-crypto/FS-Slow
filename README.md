@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recepção Ágil - Almoxarifado</title>
-    <!-- Tailwind CSS para um visual moderno e responsivo -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,8 +22,8 @@
             }
         }
     </script>
-    <!-- Biblioteca para leitura de QR Code / Código de Barras -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Biblioteca Html5-Qrcode -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body class="bg-darkBg text-slate-100 min-h-screen font-sans flex flex-col">
 
@@ -32,11 +32,11 @@
         <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
             <div>
                 <h1 class="text-xl font-bold flex items-center gap-2">
-                    📦 Recepção Ágil <span class="text-xs bg-accentGreen/20 text-accentGreen px-2 py-0.5 rounded-full font-mono">v3.2</span>
+                    📦 Recepção Ágil <span class="text-xs bg-accentGreen/20 text-accentGreen px-2 py-0.5 rounded-full font-mono">v3.3</span>
                 </h1>
                 <p class="text-xs text-slate-400">Otimização de Recebimento & Conferência Física</p>
             </div>
-            <!-- Identificação do Operador fixa -->
+            <!-- Identificação do Operador -->
             <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-3 text-xs">
                 <div>
                     <p class="text-slate-400">Operador Ativo:</p>
@@ -87,18 +87,22 @@
                     </div>
                 </div>
 
-                <!-- Botão Câmera / Bipagem -->
-                <div class="flex flex-col justify-end">
-                    <button onclick="toggleScanner()" class="bg-accentBlue hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition shadow">
-                        📷 Escanear Código de Barras (Câmera)
+                <!-- Botões de Câmera e Ações -->
+                <div class="flex flex-col justify-end gap-2">
+                    <button onclick="abrirCameraReal()" class="bg-accentBlue hover:bg-blue-600 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition shadow">
+                        📷 Abrir Câmera para Bipagem
                     </button>
                 </div>
             </div>
 
-            <!-- Área da Câmera (Escondida por padrão) -->
-            <div id="scannerContainer" class="hidden border border-slate-700 rounded-xl p-3 bg-slate-900 flex flex-col items-center gap-2">
-                <div id="reader" class="w-full max-w-sm rounded-lg overflow-hidden"></div>
-                <button onclick="toggleScanner()" class="text-xs text-red-400 hover:underline">Fechar Câmera</button>
+            <!-- CONTÊINER DA CÂMERA REAL -->
+            <div id="cameraWrapper" class="hidden flex-col items-center gap-3 bg-slate-900 border border-slate-700 p-4 rounded-xl">
+                <div class="w-full flex justify-between items-center">
+                    <span class="text-xs text-accentGreen font-bold flex items-center gap-1">🔴 Câmera Ativa - Aponte para o código</span>
+                    <button onclick="fecharCamera()" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 px-3 py-1 rounded text-xs font-bold">Fechar Câmera</button>
+                </div>
+                <div id="reader" class="w-full max-w-sm rounded-lg overflow-hidden border border-slate-800"></div>
+                <p class="text-[11px] text-slate-400 text-center">Posicione o código de barras ou QR Code dentro do visor.</p>
             </div>
         </section>
 
@@ -143,7 +147,7 @@
 
     <!-- SCRIPT DE LÓGICA E INTERAÇÃO -->
     <script>
-        // Dados do Operador Inicial
+        // Dados do Operador Ativo
         let operadorAtual = {
             nome: "Fransualdos",
             matricula: "0206042677"
@@ -152,7 +156,7 @@
         let paletes = [];
         let notasBipadas = 0;
         let divergencias = 0;
-        let scannerAtivo = null;
+        let html5QrCode = null;
 
         // Feedback sonoro (Bip sintético via Web Audio API)
         function tocarBip(tipo = 'sucesso') {
@@ -165,7 +169,7 @@
                 if (tipo === 'sucesso') {
                     osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Lá agudo
                 } else {
-                    osc.frequency.setValueAtTime(300, audioCtx.currentTime); // Grave para alerta
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime); // Grave para erro
                 }
                 
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
@@ -175,7 +179,7 @@
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.15);
             } catch (e) {
-                console.log("Áudio não suportado ou bloqueado pelo browser");
+                console.log("Áudio não suportado");
             }
         }
 
@@ -187,6 +191,7 @@
                 operadorAtual.matricula = mat;
                 document.getElementById('displayOperador').innerText = `${nome} (Mat: ${mat})`;
                 tocarBip('sucesso');
+                atualizarInterface();
             }
         }
 
@@ -242,11 +247,9 @@
                 pedido: input,
                 nfDesc: "CJ VALV SOL 12V (NF Fornecedor)",
                 casaDesc: "CONJUNTO VALVULA SOLENOIDE 12V - Mat: 8001425",
-                qtd: 10,
-                statusFisico: "Conferido"
+                qtd: 10
             });
 
-            // Atualiza Painel De/Para
             exibirCruzamento(input);
             atualizarInterface();
         }
@@ -276,7 +279,7 @@
         function registrarAvariado() {
             tocarBip('sucesso');
             divergencias++;
-            alert("📷 Simulação de captura de foto e registro de avaria gravados com sucesso! Bip de confirmação emitido.");
+            alert("📷 Simulação de captura de foto e registro de avaria gravados com sucesso! Bip emitido.");
             atualizarInterface();
         }
 
@@ -285,7 +288,6 @@
             document.getElementById('statPaletes').innerText = paletes.length;
             document.getElementById('statDivergencias').innerText = divergencias;
 
-            // Renderizar Lista de Paletes
             const container = document.getElementById('listaPaletes');
             if (paletes.length === 0) {
                 container.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">Nenhum palete aberto no momento.</div>`;
@@ -302,13 +304,12 @@
                 </div>
             `).join('');
 
-            // Atualizar Texto do Relatório
             const relatorioTexto = `📋 *RELATÓRIO DE CONFERÊNCIA - ALMOXARIFADO*
 👤 Conferente: ${operadorAtual.nome} (Mat: ${operadorAtual.matricula})
 📦 Paletes Montados: ${paletes.length}
 📄 Total de Notas/Pedidos Bipados: ${notasBipadas}
 ⚠️ Divergências/Avarias: ${divergencias}
-Status: Operação concluída sem furos de faixa (45005000-45009900).`;
+Status: Operação concluída dentro da faixa padrão (45005000-45009900).`;
 
             document.getElementById('textoRelatorio').value = relatorioTexto;
         }
@@ -318,45 +319,33 @@ Status: Operação concluída sem furos de faixa (45005000-45009900).`;
             textarea.select();
             navigator.clipboard.writeText(textarea.value);
             tocarBip('sucesso');
-            alert("Relatório copiado para a área de transferência! Pronto para colar no WhatsApp ou Teams.");
+            alert("Relatório copiado para a área de transferência!");
         }
 
-        // Câmera Real com html5-qrcode
-        function toggleScanner() {
-            const container = document.getElementById('scannerContainer');
-            if (container.classList.contains('hidden')) {
-                container.classList.remove('hidden');
-                tocarBip('sucesso');
-                try {
-                    scannerAtivo = new Html5Qrcode("reader");
-                    scannerAtivo.start(
-                        { facingMode: "environment" },
-                        { fps: 10, qrbox: { width: 250, height: 150 } },
-                        (decodedText) => {
-                            processarLeitura(decodedText);
-                            toggleScanner(); // Fecha após ler
-                        },
-                        (errorMessage) => { /* Ignora erros de frame contínuo */ }
-                    ).catch(err => {
-                        console.error("Erro ao iniciar câmera:", err);
-                        alert("Não foi possível acessar a câmera do dispositivo.");
-                        container.classList.add('hidden');
-                    });
-                } catch(e) {
-                    console.error(e);
-                }
-            } else {
-                if (scannerAtivo) {
-                    scannerAtivo.stop().then(() => {
-                        container.classList.add('hidden');
-                    }).catch(err => {
-                        container.classList.add('hidden');
-                    });
-                } else {
-                    container.classList.add('hidden');
-                }
+        // FUNÇÃO DE ABRIR A CÂMERA REAL CORRIGIDA
+        function abrirCameraReal() {
+            const wrapper = document.getElementById('cameraWrapper');
+            wrapper.style.display = 'flex';
+            tocarBip('sucesso');
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
             }
-        }
-    </script>
-</body>
-</html>
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 150 }
+                },
+                (decodedText) => {
+                    // Sucesso na leitura do código
+                    tocarBip('sucesso');
+                    document.getElementById('inputPedido').value = decodedText;
+                    processarLeitura(decodedText);
+                    fecharCamera();
+                },
+                (errorMessage) => {
+                    // Erros de varredura de quadros em tempo real são normais, ignorar
+                }
+            ).
