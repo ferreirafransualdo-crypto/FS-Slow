@@ -32,7 +32,7 @@
         <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
             <div>
                 <h1 class="text-xl font-bold flex items-center gap-2">
-                    📦 Recepção Ágil <span class="text-xs bg-accentGreen/20 text-accentGreen px-2 py-0.5 rounded-full font-mono">v3.4 (SAP Match)</span>
+                    📦 Recepção Ágil <span class="text-xs bg-accentGreen/20 text-accentGreen px-2 py-0.5 rounded-full font-mono">v3.5 (10 Dígitos SAP)</span>
                 </h1>
                 <p class="text-xs text-slate-400">Otimização de Recebimento & Conferência Física</p>
             </div>
@@ -71,16 +71,16 @@
             <div class="flex justify-between items-center">
                 <h3 class="font-semibold text-sm flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-accentGreen animate-pulse"></span>
-                    Leitura de Entrada (Faixa Validade: 45005000 - 45009900)
+                    Leitura de Entrada (Faixa Validade: 4500500000 - 4500999999)
                 </h3>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <!-- Entrada Manual Inteligente -->
                 <div class="flex flex-col gap-1">
-                    <label class="text-xs text-slate-400 font-medium">Nº Pedido SAP ou Nota Fiscal:</label>
+                    <label class="text-xs text-slate-400 font-medium">Nº Pedido SAP (10 Dígitos):</label>
                     <div class="flex gap-2">
-                        <input type="text" id="inputPedido" placeholder="Ex: 4500940713" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accentGreen flex-1 font-mono">
+                        <input type="text" id="inputPedido" maxlength="10" placeholder="Ex: 4500940713" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accentGreen flex-1 font-mono">
                         <button onclick="processarLeitura()" class="bg-accentGreen hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition shadow">
                             Validar
                         </button>
@@ -125,8 +125,8 @@
             <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow flex flex-col gap-3">
                 <h3 class="font-semibold text-sm">🔄 Cruzamento de Descrição (NF x SAP)</h3>
                 <div id="painelCruzamento" class="text-xs text-slate-400 bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col justify-center items-center text-center h-full min-h-[140px]">
-                    <p>Aguardando leitura de Nota Fiscal ou Pedido (Ex: 4500940713)...</p>
-                    <span class="text-[10px] text-slate-500 mt-1">O sistema cruzará automaticamente a descrição do fornecedor com a descrição padrão do SAP.</span>
+                    <p>Aguardando leitura de Pedido (10 dígitos)...</p>
+                    <span class="text-[10px] text-slate-500 mt-1">O sistema cruzará automaticamente com o padrão SAP de 10 dígitos.</span>
                 </div>
             </div>
 
@@ -208,25 +208,27 @@
             atualizarInterface();
         }
 
-        // Validação da Faixa de Pedidos (45005000 até 45009900)
+        // Validação da Faixa de Pedidos SAP (10 dígitos: 4500500000 até 4500999999)
         function validarFaixaPedido(numeroStr) {
-            const num = parseInt(numeroStr.trim(), 10);
+            const limpo = numeroStr.trim();
+            if (limpo.length !== 10) return false;
+            const num = parseInt(limpo, 10);
             if (isNaN(num)) return false;
-            return (num >= 45005000 && num <= 45009900);
+            return (num >= 4500500000 && num <= 4500999999);
         }
 
         function processarLeitura(codigoInformado) {
-            const input = codigoInformado || document.getElementById('inputPedido').value;
+            const input = (codigoInformado || document.getElementById('inputPedido').value).trim();
             
             if (!input) {
-                alert("Por favor, digite ou escaneie o número do pedido/nota.");
+                alert("Por favor, digite ou escaneie o número do pedido com 10 dígitos.");
                 tocarBip('erro');
                 return;
             }
 
             if (!validarFaixaPedido(input)) {
                 tocarBip('erro');
-                if(!confirm(`⚠️ ATENÇÃO: O pedido ${input} está fora da faixa padrão (45005000 a 45009900).\nDeseja prosseguir mesmo assim como exceção/avulso?`)) {
+                if(!confirm(`⚠️ ATENÇÃO: O pedido ${input} não possui 10 dígitos exatos ou está fora da faixa padrão (4500500000 a 4500999999).\nDeseja prosseguir mesmo assim como exceção/avulso?`)) {
                     return;
                 }
             } else {
@@ -241,7 +243,7 @@
                 novoPalete();
             }
 
-            // Adiciona o item ao último palete ativo simulando o padrão do SAP enviado
+            // Adiciona o item ao último palete ativo simulando o padrão SAP
             const paleteAtivo = paletes[paletes.length - 1];
             paleteAtivo.itens.push({
                 pedido: input,
@@ -261,7 +263,7 @@
             painel.className = "text-xs bg-slate-900 p-3 rounded-xl border border-accentGreen/30 flex flex-col gap-2 text-left";
             painel.innerHTML = `
                 <div class="flex justify-between items-center border-b border-slate-800 pb-1">
-                    <span class="font-bold text-accentGreen">Pedido: ${pedido}</span>
+                    <span class="font-bold text-accentGreen">Pedido (10d): ${pedido}</span>
                     <span class="text-[10px] bg-accentGreen/20 text-accentGreen px-1.5 py-0.5 rounded">Match SAP OK</span>
                 </div>
                 <div>
@@ -308,7 +310,7 @@
 📦 Paletes Montados: ${paletes.length}
 📄 Total de Pedidos Bipados: ${notasBipadas}
 ⚠️ Divergências/Avarias: ${divergencias}
-Status: Operação conferida e validada via app (Faixa 45005000-45009900).`;
+Status: Operação conferida e validada via app (Faixa 10 dígitos 4500500000-4500999999).`;
 
             document.getElementById('textoRelatorio').value = relatorioTexto;
         }
